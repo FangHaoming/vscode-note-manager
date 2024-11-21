@@ -3,14 +3,13 @@
   "displayName": "vscode-note-manager",
   "description": "It provides a place for you to open file at the activity bar",
   "version": "0.0.1",
+  "publisher": "vscode-note-manager",
+  "repository": "https://github.com/FangHaoming/vscode-note-manager",
   "engines": {
     "vscode": "^1.95.0"
   },
   "categories": [
     "Other"
-  ],
-  "files": [
-    "resources"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
