@@ -16,6 +16,10 @@ export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
     return this.treeData;
   }
 
+  clear() {
+    this.setTreeData({});
+  }
+
   private _onDidChangeTreeData: vscode.EventEmitter<FileItem | null> =
     new vscode.EventEmitter<FileItem | null>();
   readonly onDidChangeTreeData: vscode.Event<FileItem | null> =
@@ -48,7 +52,7 @@ export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
   }
 }
 
-class FileItem extends vscode.TreeItem {
+export class FileItem extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly data: any

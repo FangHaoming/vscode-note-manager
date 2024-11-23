@@ -1,1 +1,1 @@
-export * from './file-tree-provider'
+export * from './file-tree-provider';

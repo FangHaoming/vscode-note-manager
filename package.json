@@ -18,7 +18,7 @@
       "activitybar": [
         {
           "id": "fileTreeExplorer",
-          "title": "file list",
+          "title": "Note List",
           "icon": "resources/book.svg"
         }
       ]
@@ -27,26 +27,27 @@
       "fileTreeExplorer": [
         {
           "id": "fileTreeExplorer",
-          "name": "file list"
+          "name": "Note List"
         }
       ]
     },
     "commands": [
       {
-        "command": "fileTreeExplorer.openFile",
-        "title": "Open File"
-      },
-      {
-        "command": "fileTreeExplorer.refresh",
-        "title": "Refresh File"
-      },
-      {
         "command": "fileTreeExplorer.selectFolderOrFile",
-        "title": "Select Folder/File"
+        "title": "Select Folder/File",
+        "icon": "resources/add.svg"
       },
       {
-        "command": "fileTreeExplorer.clearSelection",
-        "title": "Clear All"
+        "command": "fileTreeExplorer.clearAll",
+        "title": "Clear All Selected"
+      },
+      {
+        "command": "fileTreeExplorer.addFile",
+        "title": "Add File"
+      },
+      {
+        "command": "fileTreeExplorer.addFolder",
+        "title": "Add Folder"
       }
     ],
     "menus": {
@@ -57,9 +58,21 @@
           "group": "navigation"
         },
         {
-          "command": "fileTreeExplorer.clearSelection",
+          "command": "fileTreeExplorer.clearAll",
           "when": "view == fileTreeExplorer",
-          "group": "navigation"
+          "group": "inline"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "fileTreeExplorer.addFile",
+          "when": "view == fileTreeExplorer && viewItem == fileTreeExplorerFolder",
+          "group": "inline"
+        },
+        {
+          "command": "fileTreeExplorer.addFolder",
+          "when": "view == fileTreeExplorer && viewItem == fileTreeExplorerFolder",
+          "group": "inline"
         }
       ]
     }
