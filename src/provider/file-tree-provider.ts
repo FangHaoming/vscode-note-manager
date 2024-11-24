@@ -2,14 +2,25 @@ import * as vscode from 'vscode';
 
 export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
   private treeData: Record<string, any> = {};
+  context: vscode.ExtensionContext;
 
-  constructor(treeData?: Record<string, any>) {
-    treeData && this.setTreeData(treeData);
+  constructor(context: vscode.ExtensionContext) {
+    this.context = context;
+  }
+
+  async init(treeData?: Record<string, any>) {
+    if (treeData) {
+      this.setTreeData(treeData);
+      return;
+    }
+    const data = await this.context.globalState.get('fileTreeSelectedPaths');
+    data && this.setTreeData(data);
   }
 
   setTreeData(treeData: Record<string, any>) {
     this.treeData = treeData;
     this._onDidChangeTreeData.fire(null);
+    this.context.globalState.update('fileTreeSelectedPaths', treeData);
   }
 
   getTreeData() {
@@ -18,6 +29,7 @@ export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
 
   clear() {
     this.setTreeData({});
+    this.context.globalState.update('fileTreeSelectedPaths', '');
   }
 
   private _onDidChangeTreeData: vscode.EventEmitter<FileItem | null> =

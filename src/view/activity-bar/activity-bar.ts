@@ -2,23 +2,13 @@ import { FileTreeProvider } from '../../provider';
 import * as vscode from 'vscode';
 import fs from 'fs';
 import path from 'path';
+import { MenuOption } from './constants';
 
 export function ActivityBar(context: vscode.ExtensionContext) {
   // 初始化文件树提供器
-  const fileTreeProvider = new FileTreeProvider();
+  const fileTreeProvider = new FileTreeProvider(context);
   vscode.window.registerTreeDataProvider('fileTreeExplorer', fileTreeProvider);
-  const loadSavedSelection = async () => {
-    const data = await context.globalState.get('fileTreeSelectedPaths');
-
-    if (data) {
-      fileTreeProvider.setTreeData(data);
-      vscode.window.showInformationMessage('Loaded saved selection.');
-    } else {
-      vscode.window.showWarningMessage('No saved selection found.');
-    }
-  };
-
-  loadSavedSelection();
+  fileTreeProvider.init();
 
   // 注册选择文件/文件夹命令
   vscode.commands.registerCommand('fileTreeExplorer.selectFolderOrFile', async () => {
@@ -88,9 +78,6 @@ export function ActivityBar(context: vscode.ExtensionContext) {
         ...resultTree,
       };
 
-      // 将层级结构保存到扩展全局状态
-      await context.globalState.update('fileTreeSelectedPaths', newData);
-
       // 更新文件树
       fileTreeProvider.setTreeData(newData);
 
@@ -101,11 +88,11 @@ export function ActivityBar(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand('fileTreeExplorer.openContextMenu', async () => {
     const selectedOption = await vscode.window.showQuickPick(
-      ['Clear All Selected'],
+      [MenuOption.ClearAllSelected],
       { placeHolder: 'File Tree Actions' }
     );
 
-    if (selectedOption === 'Clear All Selected') {
+    if (selectedOption === MenuOption.ClearAllSelected) {
       vscode.commands.executeCommand('fileTreeExplorer.clearAll');
     }
   });
@@ -118,8 +105,6 @@ export function ActivityBar(context: vscode.ExtensionContext) {
     );
 
     if (confirmation === 'Yes') {
-      // 清空存储的数据
-      await context.globalState.update('fileTreeSelectedPaths', '');
 
       // 刷新视图
       fileTreeProvider.clear();
