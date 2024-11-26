@@ -1,4 +1,4 @@
-import { FileTreeProvider } from '../../provider';
+import { FileItem, FileTreeProvider } from '../../provider';
 import * as vscode from 'vscode';
 import fs from 'fs';
 import path from 'path';
@@ -112,5 +112,29 @@ export function ActivityBar(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage('All selected files and folders have been cleared.');
     }
   });
-  
+
+  vscode.commands.registerCommand('fileTreeExplorer.itemClicked', async (file: FileItem) => {
+    const { filePath, isFolder } = file;
+    if (!filePath) {
+      return;
+    };
+
+    const folderPath = isFolder ? filePath : filePath.replace(`/${path.basename(filePath)}`, '');
+    // 记录选中路径
+    context.globalState.update('lastClickedPath', filePath);
+    context.globalState.update('lastClickedFolderPath', folderPath);
+    // 打开文件
+    const uri = vscode.Uri.file(filePath);
+    !isFolder && (await vscode.commands.executeCommand('vscode.open', uri));
+  });
+
+  // 注册点击文件/文件夹的命令
+  vscode.commands.registerCommand('fileTreeExplorer.selectItem', async (file: FileItem) => {
+    const { filePath, isFolder } = file;
+    if (!filePath) {
+      return;
+    };
+    const folderPath = isFolder ? filePath : filePath.replace(`/${path.basename(filePath)}`, '');
+    context.globalState.update('lastClickedFolderPath', folderPath);
+  });
 }

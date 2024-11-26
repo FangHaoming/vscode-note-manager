@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import path from 'path';
 
 export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
   private treeData: Record<string, any> = {};
@@ -41,33 +42,32 @@ export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
     return element;
   }
 
-  getChildren(element?: FileItem): Thenable<FileItem[]> {
+  async getChildren(element?: FileItem): Promise<FileItem[]> {
     if (!element) {
-      // 根节点
-      return Promise.resolve(
-        Object.keys(this.treeData).map(
-          (key) => new FileItem(key, this.treeData[key])
-        )
+      // 根节点：从 treeData 中获取顶层文件夹
+      return Object.keys(this.treeData).map(
+        (key) => new FileItem(key, this.treeData[key])
       );
     }
 
+    // 子节点：检查 element.data 是否为对象
     if (typeof element.data === 'object') {
-      // 子节点
-      return Promise.resolve(
-        Object.keys(element.data).map(
-          (key) => new FileItem(key, element.data[key])
-        )
+      return Object.keys(element.data).map(
+        (key) => new FileItem(key, element.data[key])
       );
     }
 
-    return Promise.resolve([]); // 文件没有子节点
+    // 文件：无子节点
+    return [];
   }
 }
 
 export class FileItem extends vscode.TreeItem {
   constructor(
     public readonly label: string,
-    public readonly data: any
+    public readonly data: any,
+    public filePath?: string,
+    public isFolder?: boolean
   ) {
     super(
       label,
@@ -75,14 +75,26 @@ export class FileItem extends vscode.TreeItem {
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None
     );
-
-    if (typeof data === 'string') {
-      this.resourceUri = vscode.Uri.file(data);
+    this.isFolder = typeof data === 'object';
+    this.filePath = data as string;
+    if (this.isFolder) {
+      const childrenNameList = Reflect.ownKeys(data);
+      if (childrenNameList.length > 0) {
+        const firstChildPath = data[childrenNameList[0]];
+        if (typeof firstChildPath === 'string') {
+          this.filePath = firstChildPath.replace(`/${path.basename(firstChildPath)}`, '');
+        }
+      }
+    }
+    if (!this.isFolder) {
       this.command = {
-        command: 'vscode.open',
-        title: 'Open File',
-        arguments: [this.resourceUri],
+        command: 'fileTreeExplorer.itemClicked',
+        title: 'Item Clicked',
+        arguments: [this],
       };
     }
+
+
+    this.iconPath = this.isFolder ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File;
   }
 }
