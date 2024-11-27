@@ -2,7 +2,7 @@
   "name": "vscode-note-manager",
   "displayName": "vscode-note-manager",
   "description": "It provides a place for you to open file at the activity bar",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "vscode-note-manager",
   "repository": "https://github.com/FangHaoming/vscode-note-manager",
   "engines": {
@@ -42,12 +42,16 @@
         "title": "Clear All Selected"
       },
       {
-        "command": "fileTreeExplorer.addFile",
+        "command": "fileTreeExplorer.createFile",
         "title": "Add File"
       },
       {
-        "command": "fileTreeExplorer.addFolder",
+        "command": "fileTreeExplorer.createFolder",
         "title": "Add Folder"
+      },
+      {
+        "command": "fileTreeExplorer.deleteItem",
+        "title": "Delete File/Folder"
       },
       {
         "command": "fileTreeExplorer.selectItem",
@@ -64,12 +68,12 @@
     "menus": {
       "view/title": [
         {
-          "command": "fileTreeExplorer.addFile",
+          "command": "fileTreeExplorer.createFile",
           "when": "view == fileTreeExplorer",
           "group": "navigation"
         },
         {
-          "command": "fileTreeExplorer.addFolder",
+          "command": "fileTreeExplorer.createFolder",
           "when": "view == fileTreeExplorer",
           "group": "navigation"
         },
@@ -87,6 +91,21 @@
       "view/item/context": [
         {
           "command": "fileTreeExplorer.selectItem",
+          "when": "view == fileTreeExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "fileTreeExplorer.createFile",
+          "when": "view == fileTreeExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "fileTreeExplorer.createFolder",
+          "when": "view == fileTreeExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "fileTreeExplorer.deleteItem",
           "when": "view == fileTreeExplorer",
           "group": "navigation"
         }

@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import fs from 'fs';
 import path from 'path';
 import { MenuOption } from './constants';
+import { addFile, deleteFile } from '@/utils';
 
 export function ActivityBar(context: vscode.ExtensionContext) {
   // 初始化文件树提供器
@@ -31,10 +32,12 @@ export function ActivityBar(context: vscode.ExtensionContext) {
       ];
 
       // 递归构建文件夹及文件的层级结构
-      const buildFileTree = (folderPath: string): any => {
+      const buildFileTree = (folderPath: string, isFolder = false): any => {
         const tree: Record<string, any> = {};
         const items = fs.readdirSync(folderPath);
-
+        if (isFolder) {
+          tree.__filename = folderPath;
+        }
         items.forEach((item) => {
           const fullPath = path.join(folderPath, item);
           const stat = fs.statSync(fullPath);
@@ -42,7 +45,7 @@ export function ActivityBar(context: vscode.ExtensionContext) {
           if (stat.isDirectory()) {
             // 对子文件夹递归处理
 
-            tree[item] = buildFileTree(fullPath);
+            tree[item] = buildFileTree(fullPath, true);
           } else if (stat.isFile()) {
             const ext = path.extname(fullPath).toLowerCase();
             if (allowedExtensions.includes(ext)) {
@@ -64,7 +67,7 @@ export function ActivityBar(context: vscode.ExtensionContext) {
         const fileName = path.basename(filePath);
         if (stat.isDirectory()) {
           // 对文件夹构建层级结构
-          resultTree[fileName] = buildFileTree(filePath);
+          resultTree[fileName] = buildFileTree(filePath, true);
         } else if (stat.isFile()) {
           const ext = path.extname(filePath).toLowerCase();
           if (allowedExtensions.includes(ext)) {
@@ -137,4 +140,91 @@ export function ActivityBar(context: vscode.ExtensionContext) {
     const folderPath = isFolder ? filePath : filePath.replace(`/${path.basename(filePath)}`, '');
     context.globalState.update('lastClickedFolderPath', folderPath);
   });
+
+  const getSelectedFolderPath = (file?: FileItem) => {
+    if (file && file.filePath) {
+      const { isFolder, filePath } = file;
+      const folderPath = isFolder ? filePath : filePath.replace(`/${path.basename(filePath)}`, '');
+      return folderPath;
+    }
+    return context.globalState.get('lastClickedFolderPath') as string;
+  };
+
+  // 注册创建文件命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand('fileTreeExplorer.createFile', async (file: FileItem) => {
+      const parentPath = getSelectedFolderPath(file);
+      if (!parentPath) {
+        vscode.window.showErrorMessage('No folder selected.');
+        return;
+      }
+      const fileName = await vscode.window.showInputBox({ prompt: 'Enter file name' });
+      if (!fileName) {
+        return;
+      };
+
+      const filePath = path.join(parentPath, fileName);
+      fs.writeFileSync(filePath, ''); // 创建空文件
+      vscode.window.showInformationMessage(`File created: ${filePath}`);
+      fileTreeProvider.setTreeData(addFile(fileTreeProvider.getTreeData(), filePath));
+    })
+  );
+
+  // 注册创建文件夹命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand('fileTreeExplorer.createFolder', async (file: FileItem) => {
+      const parentPath = getSelectedFolderPath(file);
+      if (!parentPath) {
+        vscode.window.showErrorMessage('No folder selected.');
+        return;
+      }
+      const folderName = await vscode.window.showInputBox({ prompt: 'Enter folder name' });
+      if (!folderName) {
+        return;
+      };
+
+      const folderPath = path.join(parentPath, folderName);
+      fs.mkdirSync(folderPath, { recursive: true }); // 创建文件夹
+      vscode.window.showInformationMessage(`Folder created: ${folderPath}`);
+      fileTreeProvider.setTreeData(addFile(fileTreeProvider.getTreeData(), folderPath, true));
+    })
+  );
+
+  // 注册删除命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand('fileTreeExplorer.deleteItem', async (file: FileItem) => {
+      if (!file.filePath) {
+        vscode.window.showErrorMessage('No file or folder selected.');
+        return;
+      }
+      const { filePath, isFolder } = file;
+
+      if (!fs.existsSync(filePath)) {
+        vscode.window.showErrorMessage('File or folder does not exist.');
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        `Are you sure you want to delete this ${isFolder ? 'folder' : 'file'}?`,
+        { modal: true },
+        'Yes'
+      );
+
+      if (confirm === 'Yes') {
+        try {
+          if (isFolder) {
+            fs.rmdirSync(filePath, { recursive: true }); // 删除文件夹及其内容
+          } else {
+            fs.unlinkSync(filePath); // 删除文件
+          }
+          vscode.window.showInformationMessage(`Deleted ${isFolder ? 'folder' : 'file'}: ${filePath}`);
+
+          // 刷新 TreeView// 假设有一个获取当前 TreeProvider 的方法
+          fileTreeProvider.setTreeData(deleteFile(fileTreeProvider.getTreeData(), filePath));
+        } catch (error) {
+          vscode.window.showErrorMessage(`Failed to delete ${isFolder ? 'folder' : 'file'}`);
+        }
+      }
+    })
+  );
 }

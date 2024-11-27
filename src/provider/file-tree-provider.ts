@@ -52,7 +52,7 @@ export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
 
     // 子节点：检查 element.data 是否为对象
     if (typeof element.data === 'object') {
-      return Object.keys(element.data).map(
+      return Object.keys(element.data).filter(i => i !== '__filename').map(
         (key) => new FileItem(key, element.data[key])
       );
     }
@@ -78,13 +78,7 @@ export class FileItem extends vscode.TreeItem {
     this.isFolder = typeof data === 'object';
     this.filePath = data as string;
     if (this.isFolder) {
-      const childrenNameList = Reflect.ownKeys(data);
-      if (childrenNameList.length > 0) {
-        const firstChildPath = data[childrenNameList[0]];
-        if (typeof firstChildPath === 'string') {
-          this.filePath = firstChildPath.replace(`/${path.basename(firstChildPath)}`, '');
-        }
-      }
+      this.filePath = data.__filename;
     }
     if (!this.isFolder) {
       this.command = {
