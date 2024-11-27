@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import fs from 'fs';
 import path from 'path';
 import { MenuOption } from './constants';
-import { addFile, deleteFile } from '@/utils';
+import { addFile, deleteFile, renameFile } from '@/utils';
 
 export function ActivityBar(context: vscode.ExtensionContext) {
   // 初始化文件树提供器
@@ -131,16 +131,6 @@ export function ActivityBar(context: vscode.ExtensionContext) {
     !isFolder && (await vscode.commands.executeCommand('vscode.open', uri));
   });
 
-  // 注册点击文件/文件夹的命令
-  vscode.commands.registerCommand('fileTreeExplorer.selectItem', async (file: FileItem) => {
-    const { filePath, isFolder } = file;
-    if (!filePath) {
-      return;
-    };
-    const folderPath = isFolder ? filePath : filePath.replace(`/${path.basename(filePath)}`, '');
-    context.globalState.update('lastClickedFolderPath', folderPath);
-  });
-
   const getSelectedFolderPath = (file?: FileItem) => {
     if (file && file.filePath) {
       const { isFolder, filePath } = file;
@@ -224,6 +214,57 @@ export function ActivityBar(context: vscode.ExtensionContext) {
         } catch (error) {
           vscode.window.showErrorMessage(`Failed to delete ${isFolder ? 'folder' : 'file'}`);
         }
+      }
+    })
+  );
+
+  // 注册重命名命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand('fileTreeExplorer.renameItem', async (file: FileItem) => {
+      if (!file.filePath) {
+        vscode.window.showErrorMessage('No file or folder selected.');
+        return;
+      }
+      const { filePath, isFolder } = file;
+
+      if (!fs.existsSync(filePath)) {
+        vscode.window.showErrorMessage('File or folder does not exist.');
+        return;
+      }
+
+      // 获取新的名称
+      const newName = await vscode.window.showInputBox({
+        prompt: `Enter a new name for the ${isFolder ? 'folder' : 'file'}`,
+        value: path.basename(filePath),
+        validateInput: (input) => {
+          if (!input.trim()) {
+            return 'Name cannot be empty.';
+          }
+          if (input === path.basename(filePath)) {
+            return 'The new name must be different from the current name.';
+          }
+          return null;
+        },
+      });
+
+      if (!newName) {
+        return; // 用户取消输入
+      }
+
+      const newPath = path.join(path.dirname(filePath), newName);
+
+      try {
+        fs.renameSync(filePath, newPath);
+        vscode.window.showInformationMessage(
+          `Renamed ${isFolder ? 'folder' : 'file'} to: ${newName}`
+        );
+
+        // 刷新 TreeView
+        fileTreeProvider.setTreeData(renameFile(fileTreeProvider.getTreeData(), filePath, newName));
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to rename ${isFolder ? 'folder' : 'file'}`
+        );
       }
     })
   );

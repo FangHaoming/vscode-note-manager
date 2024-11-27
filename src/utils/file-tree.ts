@@ -101,3 +101,69 @@ export function deleteFile(data: { [x: string]: any; }, filePath: string) {
   deletePath(root, parts);
   return data;
 }
+
+export function renameFile(data: { [x: string]: any; }, oldPath: string, newName: string | number) {
+  // 找到根目录
+  function findRootKey(data: { [x: string]: { __filename: any; }; }, filePath: string) {
+    for (const key in data) {
+      if (data[key].__filename && filePath.startsWith(data[key].__filename)) {
+        return key;
+      }
+    }
+    throw new Error('No matching root key found for the file path.');
+  }
+
+  // 递归更新文件夹路径
+  function updatePaths(obj: { [x: string]: any; }, parentPath: string) {
+    for (const key in obj) {
+      if (key === '__filename') {
+        obj[key] = parentPath;
+      } else if (typeof obj[key] === 'string') {
+        obj[key] = `${parentPath}/${key}`;
+      } else if (typeof obj[key] === 'object') {
+        const newParentPath = `${parentPath}/${key}`;
+        updatePaths(obj[key], newParentPath);
+      }
+    }
+  }
+
+  // 找到所属的顶层根目录
+  const rootKey = findRootKey(data, oldPath);
+  const root = data[rootKey];
+
+  // 获取相对路径
+  const relativePath = oldPath.slice(root.__filename.length + 1); // 获取相对路径
+  const parts = relativePath.split('/').filter(Boolean); // 确保路径数组有效
+
+  let target = root;
+  let parent = null;
+  let keyToRename = null;
+
+  // 遍历路径，找到目标位置
+  for (const part of parts) {
+    if (!target[part]) {
+      throw new Error(`Path "${part}" not found in the data structure.`);
+    }
+    parent = target;
+    keyToRename = part;
+    target = target[part];
+  }
+
+  // 重命名操作
+  if (!parent || !keyToRename) {
+    throw new Error('Cannot rename root or invalid path.');
+  }
+
+  // 更新父级对象的键名
+  parent[newName] = target;
+  delete parent[keyToRename];
+
+  // 更新路径
+  const newPath = `${parent.__filename || root.__filename}/${newName}`;
+  if (typeof target === 'object') {
+    updatePaths(target, newPath);
+  } else {
+    parent[newName] = newPath;
+  }
+  return data;
+}

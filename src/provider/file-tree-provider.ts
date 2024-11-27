@@ -87,8 +87,35 @@ export class FileItem extends vscode.TreeItem {
         arguments: [this],
       };
     }
+    this.iconPath = this.isFolder ? vscode.ThemeIcon.Folder : this.getFileIcon(path.extname(this.filePath || '').toLocaleLowerCase());
+  }
 
-
-    this.iconPath = this.isFolder ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File;
+  // 根据文件扩展名返回对应的主题图标
+  private getFileIcon(extension: string): vscode.ThemeIcon {
+    switch (extension) {
+      case '.js':
+      case '.jsx':
+        return new vscode.ThemeIcon('symbol-variable'); // JS 文件
+      case '.ts':
+      case '.tsx':
+        return new vscode.ThemeIcon('symbol-constant'); // TS 文件
+      case '.json':
+        return new vscode.ThemeIcon('json'); // JSON 文件
+      case '.md':
+        return new vscode.ThemeIcon('book'); // Markdown 文件
+      case '.png':
+      case '.jpg':
+      case '.jpeg':
+      case '.gif':
+        return new vscode.ThemeIcon('file-media'); // 图片文件
+      case '.html':
+        return new vscode.ThemeIcon('file-code'); // HTML 文件
+      case '.css':
+      case '.scss':
+      case '.sass':
+        return new vscode.ThemeIcon('symbol-file'); // 样式文件
+      default:
+        return vscode.ThemeIcon.File; // 默认图标
+    }
   }
 }
