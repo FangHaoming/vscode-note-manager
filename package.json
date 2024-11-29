@@ -63,8 +63,8 @@
     "keybindings": [
       {
         "command": "fileTreeExplorer.focus",
-        "key": "shift+alt+n",
-        "mac": "shift+alt+n"
+        "key": "shift+ctl+j",
+        "mac": "shift+cmd+j"
       }
     ],
     "menus": {

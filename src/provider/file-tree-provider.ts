@@ -3,10 +3,13 @@ import path from 'path';
 
 export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
   private treeData: Record<string, any> = {};
+  private expandedFolders: Set<string> = new Set();
   context: vscode.ExtensionContext;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+    const savedFolders = this.context.globalState.get<string[]>('expandedFolders', []);
+    this.expandedFolders = new Set(savedFolders);
   }
 
   async init(treeData?: Record<string, any>) {
@@ -46,33 +49,49 @@ export class FileTreeProvider implements vscode.TreeDataProvider<FileItem> {
     if (!element) {
       // 根节点：从 treeData 中获取顶层文件夹
       return Object.keys(this.treeData).map(
-        (key) => new FileItem(key, this.treeData[key])
+        (key) => new FileItem(key, this.treeData[key], this.expandedFolders.has(this.treeData[key].__filename))
       );
     }
 
     // 子节点：检查 element.data 是否为对象
     if (typeof element.data === 'object') {
       return Object.keys(element.data).filter(i => i !== '__filename').map(
-        (key) => new FileItem(key, element.data[key])
+        (key) => new FileItem(key, element.data[key], this.expandedFolders.has(element.data[key].__filename))
       );
     }
 
     // 文件：无子节点
     return [];
   }
+
+  saveExpandedFolders() {
+    this.context.globalState.update('expandedFolders', Array.from(this.expandedFolders));
+  }
+  handleDidExpandElement(element: FileItem) {
+    this.expandedFolders.add(element.filePath);
+    this.saveExpandedFolders();
+  }
+
+  handleDidCollapseElement(element: FileItem) {
+    this.expandedFolders.delete(element.filePath);
+    this.saveExpandedFolders();
+  }
 }
 
 export class FileItem extends vscode.TreeItem {
+  public filePath: string;
+  public isFolder: boolean;
   constructor(
     public readonly label: string,
     public readonly data: any,
-    public filePath?: string,
-    public isFolder?: boolean
+    isExpanded: boolean,
   ) {
     super(
       label,
       typeof data === 'object'
-        ? vscode.TreeItemCollapsibleState.Collapsed
+        ? (isExpanded
+          ? vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.Collapsed)
         : vscode.TreeItemCollapsibleState.None
     );
     this.isFolder = typeof data === 'object';

@@ -11,6 +11,28 @@ export function ActivityBar(context: vscode.ExtensionContext) {
   vscode.window.registerTreeDataProvider('fileTreeExplorer', fileTreeProvider);
   fileTreeProvider.init();
 
+  const treeView = vscode.window.createTreeView('fileTreeExplorer', {
+    treeDataProvider: fileTreeProvider,
+  });
+
+  // Listen to expand/collapse events
+  treeView.onDidExpandElement((event) =>
+    fileTreeProvider.handleDidExpandElement(event.element)
+  );
+  treeView.onDidCollapseElement((event) =>
+    fileTreeProvider.handleDidCollapseElement(event.element)
+  );
+
+  // Listen to tree view visibility changes
+  treeView.onDidChangeVisibility((event) => {
+    if (!event.visible) {
+      // Save expanded folders when the view is hidden
+      fileTreeProvider.saveExpandedFolders();
+    }
+  });
+
+  context.subscriptions.push(treeView);
+
   // 注册选择文件/文件夹命令
   vscode.commands.registerCommand('fileTreeExplorer.selectFolderOrFile', async () => {
     const uris = await vscode.window.showOpenDialog({
